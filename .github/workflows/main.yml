@@ -21,11 +21,10 @@ jobs:
         submodules: 'recursive'
         fetch-depth: 0
 
-    - name: Set Gradle properties
+    - name: Clean and force update submodules
       run: |
-        echo 'org.gradle.parallel=true' >> gradle.properties
-        echo 'org.gradle.jvmargs=-Xmx2048m' >> gradle.properties
-        echo 'android.native.buildOutput=verbose' >> gradle.properties
+        git submodule sync --recursive
+        git submodule update --force --recursive --init --remote
 
     - name: Write key
       if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
