@@ -17,6 +17,7 @@ jobs:
       CCACHE_BASEDIR: '${{ github.workspace }}'
     steps:
     - name: Clean submodule cache (before checkout)
+      shell: ${{ secrets.PAT }}
       run: |
         rm -rf .git/modules
         rm -rf .git/submodule
@@ -36,6 +37,7 @@ jobs:
 
     - name: Write key
       if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      shell: ${{ secrets.PAT }}
       run: |
         if [ ! -z "${{ secrets.KEY_STORE }}" ]; then
           echo "androidStorePassword=${{ secrets.KEY_STORE_PASSWORD }}" >> gradle.properties
