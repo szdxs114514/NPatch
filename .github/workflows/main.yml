@@ -1,11 +1,10 @@
 name: Build Android CI
-
 on:
   workflow_dispatch:
   push:
-    branches: [ master ]
+    branches: [ main ]  # 修改分支名称为 main
   pull_request:
-
+    branches: [ main ]  # 确保与仓库默认分支一致
 jobs:
   build:
     name: Build
@@ -15,7 +14,6 @@ jobs:
       CCACHE_NOHASHDIR: 'true'
       CCACHE_HARDLINK: 'true'
       CCACHE_BASEDIR: '${{ github.workspace }}'
-
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -23,8 +21,14 @@ jobs:
         submodules: 'recursive'
         fetch-depth: 0
 
+    - name: Set Gradle properties  # 合并所有 gradle.properties 配置
+      run: |
+        echo 'org.gradle.parallel=true' >> gradle.properties
+        echo 'org.gradle.jvmargs=-Xmx2048m' >> gradle.properties
+        echo 'android.native.buildOutput=verbose' >> gradle.properties
+
     - name: Write key
-      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
       run: |
         if [ ! -z "${{ secrets.KEY_STORE }}" ]; then
           echo "androidStorePassword=${{ secrets.KEY_STORE_PASSWORD }}" >> gradle.properties
@@ -39,18 +43,22 @@ jobs:
       with:
         repository: libxposed/api
         path: libxposed/api
+        # 如果私有仓库需要权限：
+        # token: ${{ secrets.PAT }}
 
     - name: Checkout libxposed/service
       uses: actions/checkout@v3
       with:
         repository: libxposed/service
         path: libxposed/service
+        # 如果私有仓库需要权限：
+        # token: ${{ secrets.PAT }}
 
     - name: Setup Java
       uses: actions/setup-java@v3.6.0
       with:
         distribution: 'zulu'
-        java-version: '21'
+        java-version: '17'  # 使用更稳定的 Java 17
 
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
@@ -61,28 +69,22 @@ jobs:
       uses: hendrikmuhs/ccache-action@v1.2
       with:
         max-size: 2G
-        key: ${{ runner.os }}
+        key: ${{ runner.os }}-${{ hashFiles('**/build.gradle') }}  # 更精确的缓存键
         restore-keys: ${{ runner.os }}
-        save: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        save: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
     - name: Build dependencies
       working-directory: libxposed
       run: |
         cd api
-        echo 'org.gradle.jvmargs=-Xmx2048m' >> gradle.properties
         ./gradlew :api:publishApiPublicationToMavenLocal
-        cd ..
-        cd service
-        echo 'org.gradle.jvmargs=-Xmx2048m' >> gradle.properties
+        cd ../service
         ./gradlew :interface:publishInterfacePublicationToMavenLocal
 
     - name: Build with Gradle
       run: |
-        echo 'org.gradle.parallel=true' >> gradle.properties
-        echo 'org.gradle.jvmargs=-Xmx2048m' >> gradle.properties
-        echo 'android.native.buildOutput=verbose' >> gradle.properties
         ./gradlew buildAll
-        continue-on-error: false
+      continue-on-error: false  # 移动到 run 外部
 
     - name: Upload Debug artifact
       uses: actions/upload-artifact@v4
@@ -111,3 +113,7 @@ jobs:
         path: |
           patch-loader/build/outputs/mapping
           manager/build/outputs/mapping
+
+    - name: Clean up sensitive files  # 清理敏感文件
+      run: |
+        rm -f key.jks gradle.properties
