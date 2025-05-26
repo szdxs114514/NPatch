@@ -57,7 +57,7 @@ jobs:
       with:
         gradle-home-cache-cleanup: true
 
-    - name: Set up ccache
+    - name: Set up cache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
         max-size: 2G
