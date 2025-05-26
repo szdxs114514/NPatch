@@ -2,9 +2,9 @@ name: Build Android CI
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]  # 修改分支名称为 main
+    branches: [ master ]
   pull_request:
-    branches: [ main ]  # 确保与仓库默认分支一致
+    branches: [ master ]  
 jobs:
   build:
     name: Build
@@ -21,7 +21,7 @@ jobs:
         submodules: 'recursive'
         fetch-depth: 0
 
-    - name: Set Gradle properties  # 合并所有 gradle.properties 配置
+    - name: Set Gradle properties
       run: |
         echo 'org.gradle.parallel=true' >> gradle.properties
         echo 'org.gradle.jvmargs=-Xmx2048m' >> gradle.properties
@@ -43,22 +43,18 @@ jobs:
       with:
         repository: libxposed/api
         path: libxposed/api
-        # 如果私有仓库需要权限：
-        # token: ${{ secrets.PAT }}
 
     - name: Checkout libxposed/service
       uses: actions/checkout@v3
       with:
         repository: libxposed/service
         path: libxposed/service
-        # 如果私有仓库需要权限：
-        # token: ${{ secrets.PAT }}
 
     - name: Setup Java
       uses: actions/setup-java@v3.6.0
       with:
         distribution: 'zulu'
-        java-version: '17'  # 使用更稳定的 Java 17
+        java-version: '17'  
 
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
@@ -84,7 +80,7 @@ jobs:
     - name: Build with Gradle
       run: |
         ./gradlew buildAll
-      continue-on-error: false  # 移动到 run 外部
+      continue-on-error: false
 
     - name: Upload Debug artifact
       uses: actions/upload-artifact@v4
@@ -114,6 +110,6 @@ jobs:
           patch-loader/build/outputs/mapping
           manager/build/outputs/mapping
 
-    - name: Clean up sensitive files  # 清理敏感文件
+    - name: Clean up sensitive files
       run: |
         rm -f key.jks gradle.properties
