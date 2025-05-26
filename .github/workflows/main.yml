@@ -16,13 +16,13 @@ jobs:
       CCACHE_HARDLINK: 'true'
       CCACHE_BASEDIR: '${{ github.workspace }}'
     steps:
-    - name: Clean submodule cache (before checkout)
-      shell: ${{ secrets.PAT }}
+    - name: Clean submodule cache (before checkout) 
       run: |
         rm -rf .git/modules
         rm -rf .git/submodule
         rm -rf core,libxposed
-
+      token: ${{ secrets.PAT }}
+      
     - name: Checkout
       uses: actions/checkout@v3
       with:
@@ -37,7 +37,6 @@ jobs:
 
     - name: Write key
       if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-      shell: ${{ secrets.PAT }}
       run: |
         if [ ! -z "${{ secrets.KEY_STORE }}" ]; then
           echo "androidStorePassword=${{ secrets.KEY_STORE_PASSWORD }}" >> gradle.properties
@@ -46,7 +45,8 @@ jobs:
           echo "androidStoreFile=key.jks" >> gradle.properties
           echo "${{ secrets.KEY_STORE }}" | base64 --decode > key.jks
         fi
-
+        token: ${{ secrets.PAT }}
+   
     - name: Checkout libxposed/api
       uses: actions/checkout@v3
       with:
