@@ -2,9 +2,10 @@ name: Build Android CI
 on:
   workflow_dispatch:
   push:
-    branches: [ master ]
+    branches: [ master ]  # 确保与仓库默认分支一致
   pull_request:
-    branches: [ master ]  
+    branches: [ master ]
+
 jobs:
   build:
     name: Build
@@ -15,13 +16,20 @@ jobs:
       CCACHE_HARDLINK: 'true'
       CCACHE_BASEDIR: '${{ github.workspace }}'
     steps:
+    - name: Clean submodule cache (before checkout)
+      run: |
+        rm -rf .git/modules
+        rm -rf .git/submodule
+        rm -rf core,libxposed
+
     - name: Checkout
       uses: actions/checkout@v3
       with:
         submodules: 'recursive'
         fetch-depth: 0
+        token: ${{ secrets.PAT }}
 
-    - name: Clean and force update submodules
+    - name: Force update submodules after checkout
       run: |
         git submodule sync --recursive
         git submodule update --force --recursive --init --remote
